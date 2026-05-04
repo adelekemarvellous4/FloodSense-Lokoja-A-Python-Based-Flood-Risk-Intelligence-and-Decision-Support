@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Large geospatial data
+data/raw/**
+data/interim/**
+data/processed/**
+data/external/**
+outputs/**
+
+# Keep folder placeholders
+!data/**/.gitkeep
+!outputs/**/.gitkeep
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

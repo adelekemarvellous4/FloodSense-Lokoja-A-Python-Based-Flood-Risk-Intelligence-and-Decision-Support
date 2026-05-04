@@ -1,0 +1,60 @@
+project:
+  name: floodsense-lokoja
+  study_area: Lokoja
+  state: Kogi
+  country: Nigeria
+  crs: EPSG:32632
+
+paths:
+  raw_boundary: data/raw/boundary
+  raw_dem: data/raw/dem
+  raw_rainfall: data/raw/rainfall
+  raw_sentinel1: data/raw/sentinel1
+  raw_landcover: data/raw/landcover
+  raw_buildings: data/raw/buildings
+  raw_roads: data/raw/roads
+  raw_population: data/raw/population
+  interim_clipped: data/interim/clipped
+  interim_reprojected: data/interim/reprojected
+  interim_cleaned: data/interim/cleaned
+  processed_rasters: data/processed/rasters
+  processed_vectors: data/processed/vectors
+  processed_tables: data/processed/tables
+  dashboard_layers: data/processed/dashboard_layers
+  outputs_maps: outputs/maps
+  outputs_tables: outputs/tables
+  outputs_validation: outputs/validation
+  outputs_dashboard: outputs/dashboard
+
+weights:
+  elevation: 0.20
+  slope: 0.15
+  flow_accumulation: 0.20
+  distance_to_river: 0.25
+  rainfall: 0.10
+  landcover: 0.10
+
+classes:
+  susceptibility:
+    1: Very Low
+    2: Low
+    3: Moderate
+    4: High
+    5: Very High
+  priority:
+    - Low
+    - Moderate
+    - High
+    - Critical
+
+hydrology:
+  stream_threshold: 1000
+
+sar_validation:
+  method: ratio
+  ratio_threshold: 0.7
+
+rainfall_scenarios:
+  low_modifier: 0.85
+  moderate_modifier: 1.00
+  severe_modifier: 1.20
