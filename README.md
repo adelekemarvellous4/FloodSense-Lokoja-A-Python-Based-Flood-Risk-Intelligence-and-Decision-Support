@@ -1,133 +1,160 @@
 # FloodSense Lokoja
 
-**FloodSense Lokoja: A Python-Based Flood Risk Intelligence and Decision Support System** is a portfolio-grade geospatial project for Lokoja, Kogi State, Nigeria.
+**A Python-based flood risk intelligence and decision support system for Lokoja, Kogi State, Nigeria.**
 
-This is not just a flood map. It is a reproducible flood-risk decision-support workflow that identifies flood-prone areas, validates modelled flood zones with Sentinel-1 SAR evidence, estimates exposed people and infrastructure, ranks intervention priorities, and exports WebGIS-ready layers.
+FloodSense is not just a flood map. It is a reproducible workflow that identifies flood-prone areas, validates modelled flood zones with Sentinel-1 SAR evidence, estimates exposed people and infrastructure, ranks intervention priorities, and presents results in an interactive WebGIS dashboard.
 
-## Study Area
+---
 
-- City: Lokoja
-- State: Kogi
-- Country: Nigeria
-- Default projected CRS: EPSG:32632
+## Study area
 
-## Project Concept
+- City: Lokoja, Kogi State, Nigeria
+- Validation event: October 2022 Niger–Benue flood
+- Projected CRS: EPSG:32632 (UTM Zone 32N)
 
-FloodSense works like a flood detective system:
+---
 
-- DEM analysis studies the shape of the land.
-- Rainfall analysis estimates how much water enters the system.
-- Flow accumulation identifies where water gathers.
-- Flood susceptibility predicts likely flood-prone areas.
-- Sentinel-1 validation checks predictions against satellite flood evidence.
-- Exposure analysis counts who and what may be affected.
-- Priority indexing decides where intervention should happen first.
-- WebGIS dashboard presents results to decision-makers.
+## Project concept
 
-## Folder Structure
+| Stage | What it does |
+|---|---|
+| DEM analysis | Studies the shape of the land |
+| Rainfall analysis | Estimates how much water enters the system |
+| Flow accumulation | Identifies where water gathers |
+| Flood susceptibility | Predicts likely flood-prone areas |
+| Sentinel-1 validation | Checks predictions against satellite flood evidence |
+| Exposure analysis | Counts who and what may be affected |
+| Priority index | Decides where intervention should happen first |
+| WebGIS dashboard | Presents results to decision-makers |
 
-```text
-data/raw/                 Raw input datasets
-data/interim/             Clipped, cleaned, and reprojected datasets
-data/processed/           Analysis-ready rasters, vectors, tables, dashboard layers
-notebooks/                Portfolio-readable workflow notebooks
-src/floodsense/           Reusable Python package
-scripts/                  Thin executable workflow scripts
-dashboard/                Streamlit/Folium WebGIS dashboard
-outputs/                  Maps, tables, validation outputs, dashboard exports
-docs/                     Methodology and portfolio documentation
-tests/                    Unit tests for reusable logic
+---
+
+## Folder structure
+
+```
+config/
+  config.yaml               Master configuration — paths, weights, CRS, scenarios
+
+data/
+  raw/                      Original downloaded datasets (boundary, dem, sentinel1, ...)
+  interim/                  Clipped, reprojected, and cleaned datasets
+  processed/                Analysis-ready rasters, vectors, tables, dashboard layers
+
+notebooks/                  Portfolio Jupyter notebooks — one per analysis stage
+scripts/                    Executable workflow scripts (00–07 + run_pipeline.py)
+src/floodsense/             Reusable Python package (imported by scripts and notebooks)
+dashboard/                  Streamlit + Folium WebGIS app
+outputs/                    Maps, tables, validation results, reports
+docs/                       Methodology, validation report, portfolio summary
+tests/                      Unit tests for core module logic
 ```
 
-## Expected Raw Data Placement
-
-- Boundary files: `data/raw/boundary/`
-- DEM files: `data/raw/dem/`
-- Rainfall files: `data/raw/rainfall/`
-- Sentinel-1 files: `data/raw/sentinel1/`
-- Landcover files: `data/raw/landcover/`
-- Building files: `data/raw/buildings/`
-- Road files: `data/raw/roads/`
-- Population files: `data/raw/population/`
-
-Boundary data is required. Other datasets are optional by stage; missing optional data is reported clearly and skipped.
+---
 
 ## Installation
 
 ```bash
+# Option A — pip (recommended for quick start)
 pip install -e .
-```
 
-Or create the Conda environment:
-
-```bash
+# Option B — conda environment
 conda env create -f environment.yml
 conda activate floodsense-lokoja
 pip install -e .
 ```
 
-## Execution Order
+---
+
+## Data download (required first step)
+
+Before running any analysis, place your boundary file in `data/raw/boundary/`.
+
+Easiest option — geoBoundaries (no login needed):
+
+```bash
+curl -L "https://www.geoboundaries.org/api/current/gbOpen/NGA/ADM2/" \
+     -o data/raw/boundary/nga_adm2.geojson
+```
+
+See `scripts/00_download_data.py` for full instructions on all download options.
+
+---
+
+## Execution order
 
 ```bash
 pip install -e .
 
+# Stage 00: boundary setup and directory creation
+python scripts/00_download_data.py
+
+# Stage 01: clip, reproject, and clean all datasets
 python scripts/01_prepare_data.py
+
+# Stage 02: DEM terrain and hydrological analysis
 python scripts/02_run_hydrology.py
+
+# Stage 03: flood susceptibility model
 python scripts/03_build_susceptibility_model.py
+
+# Stage 04: Sentinel-1 SAR validation
 python scripts/04_run_sar_validation.py
+
+# Stage 05: exposure analysis
 python scripts/05_run_exposure_analysis.py
+
+# Stage 06: flood intervention priority index
 python scripts/06_build_priority_index.py
+
+# Stage 07: export WebGIS dashboard layers
 python scripts/07_export_dashboard_layers.py
+
+# Launch dashboard
 streamlit run dashboard/app.py
 ```
 
-Full pipeline option:
+Run all stages at once:
 
 ```bash
 python scripts/run_pipeline.py --stage all
 ```
 
-Run one stage:
+Run a single stage:
 
 ```bash
 python scripts/run_pipeline.py --stage susceptibility
 ```
 
-## Expected Outputs
+---
 
-- `data/processed/rasters/susceptibility_score.tif`
-- `data/processed/rasters/susceptibility_class.tif`
-- `data/processed/rasters/observed_flood_extent.tif`
-- `data/processed/vectors/high_risk_flood_zones.gpkg`
-- `data/processed/vectors/exposed_buildings.gpkg`
-- `data/processed/vectors/exposed_roads.gpkg`
-- `data/processed/tables/exposure_summary.csv`
-- `outputs/validation/validation_metrics.csv`
-- `data/processed/tables/priority_ranking.csv`
-- `data/processed/dashboard_layers/*.geojson`
+## Expected outputs
 
-## Dashboard
+| File | Description |
+|---|---|
+| `data/processed/rasters/susceptibility_score.tif` | Raw flood susceptibility 0–1 score |
+| `data/processed/rasters/susceptibility_class.tif` | Classified 1–5 risk map |
+| `data/processed/rasters/observed_flood_extent.tif` | SAR-derived flood extent |
+| `data/processed/vectors/high_risk_flood_zones.gpkg` | High + Very High risk polygons |
+| `data/processed/vectors/exposed_buildings.gpkg` | Buildings in flood zones |
+| `data/processed/vectors/exposed_roads.gpkg` | Roads in flood zones |
+| `data/processed/tables/exposure_summary.csv` | Community-level exposure table |
+| `outputs/validation/validation_metrics.csv` | SAR validation accuracy metrics |
+| `data/processed/tables/priority_ranking.csv` | Ranked community priority table |
+| `data/processed/dashboard_layers/*.geojson` | WebGIS-ready layers |
 
-Run:
-
-```bash
-streamlit run dashboard/app.py
-```
-
-The dashboard loads exported GeoJSON layers and CSV tables when available. Missing layers are handled gracefully.
+---
 
 ## Limitations
 
-- The first susceptibility model is a transparent weighted overlay, not a full hydraulic model.
-- Sentinel-1 flood extraction uses starter ratio/change detection and should be calibrated with local flood dates.
-- Land-cover risk interpretation depends on the class scheme of the input land-cover product.
-- Flood results depend heavily on input data quality, DEM resolution, and boundary accuracy.
+- The susceptibility model uses transparent weighted overlay, not hydraulic modelling.
+- SAR flood extraction uses ratio/change detection — calibrate threshold for Lokoja conditions.
+- Results depend on DEM quality, boundary accuracy, and input dataset resolution.
+- Land-cover risk scores assume ESA WorldCover class scheme.
 
-## Future Improvements
+## Future improvements
 
-- Calibrated SAR thresholding with permanent-water masking.
-- Rainfall return-period scenarios for 10-year, 50-year, and 100-year events.
-- Ward/community-level aggregation.
-- Critical infrastructure exposure.
-- Model sensitivity analysis and weight calibration.
+- Return-period rainfall scenarios (10-year, 50-year, 100-year).
+- Ward/community-level aggregation for administrative reporting.
+- Critical infrastructure exposure (hospitals, schools, markets).
+- Calibrated SAR threshold with permanent-water masking.
 - Cloud-hosted WebGIS deployment.

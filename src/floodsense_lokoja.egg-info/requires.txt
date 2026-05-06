@@ -1,0 +1,16 @@
+geopandas
+rasterio
+rioxarray
+xarray
+numpy
+pandas
+shapely
+pyproj
+whitebox
+rasterstats
+osmnx
+scikit-learn
+matplotlib
+folium
+streamlit
+pyyaml

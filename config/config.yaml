@@ -1,38 +1,72 @@
+# FloodSense Lokoja — Master Configuration
+# Single source of truth for all scripts, notebooks, and modules.
+# Edit this file to change study area, weights, paths, or scenarios.
+
 project:
   name: floodsense-lokoja
   study_area: Lokoja
   state: Kogi
   country: Nigeria
-  crs: EPSG:32632
+  crs: EPSG:32632          # UTM Zone 32N — metric CRS for central Nigeria
+  geographic_crs: EPSG:4326
+
+flood_events:
+  validation_event:
+    name: "2022 Niger-Benue flood"
+    date_start: "2022-10-01"
+    date_end: "2022-10-31"
+  historical_events:
+    - year: 2012
+      notes: "Major national flood — Niger and Benue overflow"
+    - year: 2018
+      notes: "Significant Lokoja flooding"
+    - year: 2022
+      notes: "Most recent major event — use for SAR validation"
 
 paths:
-  raw_boundary: data/raw/boundary
-  raw_dem: data/raw/dem
-  raw_rainfall: data/raw/rainfall
-  raw_sentinel1: data/raw/sentinel1
-  raw_landcover: data/raw/landcover
-  raw_buildings: data/raw/buildings
-  raw_roads: data/raw/roads
+  # Raw inputs — place downloaded data here
+  raw_boundary:   data/raw/boundary
+  raw_dem:        data/raw/dem
+  raw_rainfall:   data/raw/rainfall
+  raw_sentinel1:  data/raw/sentinel1
+  raw_landcover:  data/raw/landcover
+  raw_buildings:  data/raw/buildings
+  raw_roads:      data/raw/roads
   raw_population: data/raw/population
-  interim_clipped: data/interim/clipped
-  interim_reprojected: data/interim/reprojected
-  interim_cleaned: data/interim/cleaned
-  processed_rasters: data/processed/rasters
-  processed_vectors: data/processed/vectors
-  processed_tables: data/processed/tables
-  dashboard_layers: data/processed/dashboard_layers
-  outputs_maps: outputs/maps
-  outputs_tables: outputs/tables
-  outputs_validation: outputs/validation
-  outputs_dashboard: outputs/dashboard
 
-weights:
-  elevation: 0.20
-  slope: 0.15
-  flow_accumulation: 0.20
-  distance_to_river: 0.25
-  rainfall: 0.10
-  landcover: 0.10
+  # Interim — clipped, reprojected, cleaned
+  interim_clipped:     data/interim/clipped
+  interim_reprojected: data/interim/reprojected
+  interim_cleaned:     data/interim/cleaned
+  interim_masks:       data/interim/masks
+  interim_sar:         data/interim/sar_preprocessed
+
+  # Processed — analysis-ready outputs
+  processed_rasters:  data/processed/rasters
+  processed_vectors:  data/processed/vectors
+  processed_tables:   data/processed/tables
+  flood_scenarios:    data/processed/flood_scenarios
+  dashboard_layers:   data/processed/dashboard_layers
+
+  # Final outputs
+  outputs_maps:       outputs/maps
+  outputs_maps_static: outputs/maps/static
+  outputs_maps_export: outputs/maps/exports
+  outputs_figures:    outputs/figures
+  outputs_tables:     outputs/tables
+  outputs_validation: outputs/validation
+  outputs_reports:    outputs/reports
+  outputs_dashboard:  outputs/dashboard
+  outputs_rasters:    outputs/rasters
+  outputs_vectors:    outputs/vectors
+
+susceptibility_weights:
+  elevation:         0.25   # Low elevation = high risk (inverted)
+  slope:             0.15   # Flat slope = high risk (inverted)
+  flow_accumulation: 0.20   # High accumulation = high risk
+  distance_to_river: 0.25   # Close to river = high risk (inverted)
+  rainfall:          0.10   # High rainfall = high risk
+  landcover:         0.05   # Built-up/water = high risk (reclassified)
 
 classes:
   susceptibility:
@@ -48,13 +82,33 @@ classes:
     - Critical
 
 hydrology:
-  stream_threshold: 1000
+  stream_threshold: 1000    # Cells upstream to qualify as a stream (30m DEM)
+  dem_resolution_m: 30      # Target DEM resolution in metres
 
 sar_validation:
-  method: ratio
-  ratio_threshold: 0.7
+  method: ratio             # Options: ratio, difference
+  ratio_threshold: 0.7      # Ratio below this = likely flooded
+  polarization: VH          # VH is preferred for open water detection
+  pre_flood_dir:  data/raw/sentinel1/pre_flood
+  flood_dir:      data/raw/sentinel1/during_flood
 
 rainfall_scenarios:
-  low_modifier: 0.85
-  moderate_modifier: 1.00
-  severe_modifier: 1.20
+  low_modifier:      0.85   # 85% of mean rainfall
+  moderate_modifier: 1.00   # 100% of mean rainfall
+  severe_modifier:   1.20   # 120% of mean rainfall
+
+exposure:
+  high_risk_classes: [4, 5]      # Susceptibility classes treated as flood zone
+  population_raster_year: 2020
+  road_types:
+    - motorway
+    - trunk
+    - primary
+    - secondary
+    - residential
+
+dashboard:
+  center_lat: 7.800
+  center_lon: 6.745
+  default_zoom: 11
+  map_tiles: OpenStreetMap

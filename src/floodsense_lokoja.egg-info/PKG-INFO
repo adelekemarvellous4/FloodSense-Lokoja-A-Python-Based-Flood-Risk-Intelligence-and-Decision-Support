@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: floodsense-lokoja
+Version: 0.1.0
+Summary: Python-based flood risk intelligence and decision support system for Lokoja, Nigeria.
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: geopandas
+Requires-Dist: rasterio
+Requires-Dist: rioxarray
+Requires-Dist: xarray
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: shapely
+Requires-Dist: pyproj
+Requires-Dist: whitebox
+Requires-Dist: rasterstats
+Requires-Dist: osmnx
+Requires-Dist: scikit-learn
+Requires-Dist: matplotlib
+Requires-Dist: folium
+Requires-Dist: streamlit
+Requires-Dist: pyyaml
+Dynamic: license-file

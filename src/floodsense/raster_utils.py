@@ -23,15 +23,39 @@ def get_raster_profile(path: str | Path) -> dict:
 def clip_raster_to_boundary(
     raster_path: str | Path, boundary_gdf: gpd.GeoDataFrame, output_path: str | Path
 ) -> Path:
-    """Clip a raster to a boundary GeoDataFrame."""
+    """Clip a raster to a boundary GeoDataFrame, masking outside pixels as nodata."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with rasterio.open(raster_path) as src:
-        boundary = boundary_gdf.to_crs(src.crs) if boundary_gdf.crs != src.crs else boundary_gdf
-        geometries = [geom.__geo_interface__ for geom in boundary.geometry if geom is not None]
-        data, transform = mask(src, geometries, crop=True)
+        if boundary_gdf.crs is None:
+            raise ValueError("Boundary has no CRS.")
+        boundary_reproj = (
+            boundary_gdf.to_crs(src.crs)
+            if str(boundary_gdf.crs) != str(src.crs)
+            else boundary_gdf
+        )
+        geometries = [
+            geom.__geo_interface__
+            for geom in boundary_reproj.geometry
+            if geom is not None and not geom.is_empty
+        ]
+        src_nodata = src.nodata
+        if src_nodata is not None:
+            nodata_val = src_nodata
+        elif np.issubdtype(src.dtypes[0], np.floating):
+            nodata_val = -9999.0
+        else:
+            nodata_val = 0
+        data, transform = mask(
+            src, geometries, crop=True, filled=True, nodata=nodata_val
+        )
         profile = src.profile.copy()
-        profile.update(height=data.shape[1], width=data.shape[2], transform=transform)
+        profile.update(
+            height=data.shape[1], width=data.shape[2],
+            transform=transform, nodata=nodata_val
+        )
+    if output_path.exists():
+        output_path.unlink()
     with rasterio.open(output_path, "w", **profile) as dst:
         dst.write(data)
     return output_path
@@ -166,3 +190,28 @@ def raster_to_polygon(
     driver = "GeoJSON" if output_path.suffix.lower() in {".geojson", ".json"} else "GPKG"
     gdf.to_file(output_path, driver=driver)
     return output_path
+def check_clip_quality(raster_path, label: str = "") -> dict:
+    """Check whether a raster has been properly clipped to a boundary."""
+    path = Path(raster_path)
+    if not path.exists():
+        print(f"  ✗  {label or path.name}: not found")
+        return {"exists": False}
+    with rasterio.open(path) as src:
+        data    = src.read(1)
+        nodata  = src.nodata
+        total   = data.size
+        nd_count = int((data == nodata).sum()) if nodata is not None else 0
+        nd_pct   = nd_count / total * 100
+        valid    = total - nd_count
+    result = {"exists": True, "label": label, "nodata": nodata,
+              "nd_pct": round(nd_pct, 1), "valid_px": valid, "ok": False}
+    if nodata is None:
+        print(f"  ⚠  {label}: no nodata value set — clip may be bbox-only")
+    elif nd_count == 0:
+        print(f"  ⚠  {label}: 0% nodata — likely bbox-only crop, boundary not applied")
+    elif nd_pct > 95:
+        print(f"  ⚠  {label}: {nd_pct:.1f}% nodata — check boundary alignment")
+    else:
+        print(f"  ✓  {label}: {nd_pct:.1f}% nodata outside boundary ({valid:,} valid pixels)")
+        result["ok"] = True
+    return result

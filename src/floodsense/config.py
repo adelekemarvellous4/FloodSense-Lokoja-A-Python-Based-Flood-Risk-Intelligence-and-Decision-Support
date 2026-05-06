@@ -7,7 +7,6 @@ from typing import Any
 
 import yaml
 
-
 REQUIRED_KEYS = (
     "project.name",
     "project.study_area",
@@ -16,7 +15,7 @@ REQUIRED_KEYS = (
     "paths.processed_rasters",
     "paths.processed_vectors",
     "paths.processed_tables",
-    "weights",
+    "susceptibility_weights",
 )
 
 
@@ -35,11 +34,10 @@ def get_config_value(config: dict[str, Any], key_path: str, default: Any = None)
 
 
 def validate_config(config: dict[str, Any]) -> None:
-    """Validate required configuration keys."""
+    """Validate required configuration keys are present."""
     missing = [key for key in REQUIRED_KEYS if get_config_value(config, key) is None]
     if missing:
-        missing_text = ", ".join(missing)
-        raise ValueError(f"Config is missing required key(s): {missing_text}")
+        raise ValueError(f"Config missing required key(s): {', '.join(missing)}")
 
 
 def load_config(config_path: str | Path = "config/config.yaml") -> dict[str, Any]:
@@ -49,9 +47,29 @@ def load_config(config_path: str | Path = "config/config.yaml") -> dict[str, Any
         path = _project_root() / path
     if not path.exists():
         raise FileNotFoundError(
-            f"Config file not found: {path}. Create config/config.yaml from the project template."
+            f"Config not found: {path}\n"
+            "Ensure config/config.yaml exists in the project root."
         )
-    with path.open("r", encoding="utf-8") as file:
-        config = yaml.safe_load(file) or {}
+    with path.open("r", encoding="utf-8") as f:
+        config = yaml.safe_load(f) or {}
     validate_config(config)
     return config
+
+
+def get_weights(config: dict[str, Any]) -> dict[str, float]:
+    """Return susceptibility weights as a plain dict of floats."""
+    return {k: float(v) for k, v in config["susceptibility_weights"].items()}
+
+
+def get_crs(config: dict[str, Any]) -> str:
+    """Return the projected CRS string."""
+    return config["project"]["crs"]
+
+
+def get_path(config: dict[str, Any], key: str) -> Path:
+    """Resolve a path key from config relative to the project root."""
+    raw = config["paths"].get(key)
+    if raw is None:
+        raise KeyError(f"Path key '{key}' not found in config.")
+    p = Path(raw)
+    return p if p.is_absolute() else _project_root() / p
