@@ -86,16 +86,18 @@ hydrology:
   dem_resolution_m: 30      # Target DEM resolution in metres
 
 sar_validation:
-  method: ratio             # Options: ratio, difference
-  ratio_threshold: 0.7      # Ratio below this = likely flooded
-  polarization: VH          # VH is preferred for open water detection
-  pre_flood_dir:  data/raw/sentinel1/pre_flood
-  flood_dir:      data/raw/sentinel1/during_flood
+  method: combined_db
+  polarization: VH
 
-rainfall_scenarios:
-  low_modifier:      0.85   # 85% of mean rainfall
-  moderate_modifier: 1.00   # 100% of mean rainfall
-  severe_modifier:   1.20   # 120% of mean rainfall
+  # Used only if method is "ratio"
+  ratio_threshold: 0.7
+
+  # Used for dB-based Sentinel-1 flood extraction
+  flood_vh_threshold: -16.5
+  db_difference_threshold: -1.0
+
+  pre_flood_dir: data/raw/sentinel1/pre_flood
+  flood_dir: data/raw/sentinel1/during_flood
 
 exposure:
   high_risk_classes: [4, 5]      # Susceptibility classes treated as flood zone

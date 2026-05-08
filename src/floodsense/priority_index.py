@@ -85,3 +85,49 @@ def run_priority_index(config: dict) -> None:
     ranking.to_csv(out_processed, index=False)
     ranking.to_csv(out_outputs, index=False)
     print(f"[priority] Wrote priority ranking: {out_processed}")
+    print_priority_summary(ranking)
+    print("\n[priority] Complete")
+    print("  Next step: python scripts/07_export_dashboard_layers.py")
+
+
+def print_priority_summary(ranking: pd.DataFrame) -> None:
+    """Print a clean priority ranking summary table."""
+    print("\n" + "─" * 60)
+    print("  Flood Intervention Priority Index — Lokoja LGA")
+    print("─" * 60)
+    score = float(ranking["priority_score"].iloc[0]) if "priority_score" in ranking.columns else 0.0
+    pclass = ranking["priority_class"].iloc[0] if "priority_class" in ranking.columns else "Unknown"
+
+    print(f"  Priority class  : {pclass}")
+    print(f"  Priority score  : {score:.4f}  (0=lowest, 1=highest)")
+    print()
+
+    indicators = [
+        ("exposed_population",      "Exposed population",    "{:,.0f} people"),
+        ("exposed_buildings",        "Exposed buildings",     "{:,.0f}"),
+        ("affected_road_length_km",  "Affected road length",  "{:.1f} km"),
+        ("hazard_score",             "Hazard score",          "{:.4f}"),
+    ]
+
+    for col, label, fmt in indicators:
+        if col in ranking.columns:
+            val = ranking[col].iloc[0]
+            try:
+                print(f"  {label:<28}: {fmt.format(float(val))}")
+            except (ValueError, TypeError):
+                print(f"  {label:<28}: {val}")
+
+    print()
+    print(f"  Recommendation:")
+    if pclass == "Critical":
+        print("  → Immediate intervention required.")
+        print("  → Priority for flood barriers, early warning, and evacuation planning.")
+    elif pclass == "High":
+        print("  → High-priority flood risk management measures needed.")
+        print("  → Consider drainage improvement and community awareness.")
+    elif pclass == "Moderate":
+        print("  → Moderate risk — monitor and plan for future mitigation.")
+    else:
+        print("  → Lower priority relative to other zones.")
+        print("  → Maintain standard flood preparedness measures.")
+    print("─" * 60)

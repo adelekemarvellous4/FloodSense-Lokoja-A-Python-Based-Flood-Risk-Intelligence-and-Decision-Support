@@ -83,10 +83,45 @@ def export_dashboard_layers(config: dict) -> None:
     _copy_csv(tables / "priority_ranking.csv", output_dashboard / "priority_ranking.csv")
     _copy_csv(outputs_tables / "priority_ranking.csv", output_dashboard / "priority_ranking.csv")
 
+    # Read exposure summary for the stats JSON
+    import pandas as pd
+    stats = {}
+    exp_csv = tables / "exposure_summary.csv"
+    if exp_csv.exists():
+        df = pd.read_csv(exp_csv)
+        if not df.empty:
+            row = df.iloc[0]
+            stats["exposed_population"]     = int(row.get("exposed_population", 0))
+            stats["exposed_buildings"]       = int(row.get("exposed_buildings", 0))
+            stats["affected_road_length_km"] = float(row.get("affected_road_length_km", 0))
+
+    val_csv = validation / "validation_metrics.csv"
+    if val_csv.exists():
+        vdf = pd.read_csv(val_csv)
+        if not vdf.empty:
+            stats["sar_f1_score"] = float(vdf.iloc[0].get("f1_score", 0))
+            stats["sar_recall"]   = float(vdf.iloc[0].get("recall", 0))
+            stats["flood_event"]  = str(vdf.iloc[0].get("flood_event", ""))
+
     metadata = {
-        "project": config.get("project", {}),
-        "layers": sorted(path.name for path in dashboard.glob("*.geojson")),
-        "tables": sorted(path.name for path in output_dashboard.glob("*.csv")),
+        "project"   : config.get("project", {}),
+        "layers"    : sorted(path.name for path in dashboard.glob("*.geojson")),
+        "tables"    : sorted(path.name for path in output_dashboard.glob("*.csv")),
+        "statistics": stats,
     }
     write_metadata(metadata, dashboard / "metadata.json")
-    print(f"[export] Dashboard layers written to: {dashboard}")
+    write_metadata(stats, dashboard / "summary_stats.json")
+
+    # Print export summary
+    layers  = sorted(dashboard.glob("*.geojson"))
+    csvs    = sorted(output_dashboard.glob("*.csv"))
+    print("\n[export] Dashboard export complete")
+    print(f"  Destination : {dashboard}")
+    print(f"  GeoJSON layers ({len(layers)}):" )
+    for p in layers:
+        size_kb = p.stat().st_size / 1024
+        print(f"    ✓  {p.name:<45} {size_kb:>8.1f} KB")
+    print(f"  CSV tables ({len(csvs)}):")
+    for p in csvs:
+        print(f"    ✓  {p.name}")
+    print("\nNext step: streamlit run dashboard/app.py")
