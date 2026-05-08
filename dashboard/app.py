@@ -1,7 +1,7 @@
 from pathlib import Path
+import json
 
 import folium
-import geopandas as gpd
 import pandas as pd
 import streamlit as st
 
@@ -91,28 +91,20 @@ STATIC_MAPS = {
 
 
 @st.cache_data(show_spinner=False)
-def load_geojson(filename: str) -> gpd.GeoDataFrame | None:
+def load_geojson(filename: str) -> dict | None:
     path = LAYER_DIR / filename
 
     if not path.exists():
         return None
 
     try:
-        gdf = gpd.read_file(path)
+        with path.open("r", encoding="utf-8") as file:
+            data = json.load(file)
 
-        if gdf.empty:
+        if not data.get("features"):
             return None
 
-        gdf = gdf[gdf.geometry.notna() & ~gdf.geometry.is_empty].copy()
-        gdf["geometry"] = gdf.geometry.make_valid()
-
-        if gdf.crs is None:
-            gdf = gdf.set_crs("EPSG:4326")
-
-        if str(gdf.crs) != "EPSG:4326":
-            gdf = gdf.to_crs("EPSG:4326")
-
-        return gdf.reset_index(drop=True)
+        return data
 
     except Exception as exc:
         st.warning(f"Could not load {filename}: {exc}")
@@ -144,13 +136,13 @@ def safe_metric(df: pd.DataFrame | None, column: str, fmt: str = "{:,.0f}") -> s
 
 
 def add_geojson_layer(fmap: folium.Map, filename: str, style: dict) -> None:
-    gdf = load_geojson(filename)
+    geojson_data = load_geojson(filename)
 
-    if gdf is None or gdf.empty:
+    if geojson_data is None:
         return
 
     folium.GeoJson(
-        gdf.__geo_interface__,
+        geojson_data,
         name=style["label"],
         style_function=lambda feature, s=style: {
             "color": s.get("color", "#3498db"),
@@ -298,9 +290,11 @@ with tab_map:
             fmap = build_map(selected_layers)
 
         if HAS_ST_FOLIUM:
-            st_folium(fmap, height=620, use_container_width=True)
+            st_folium(fmap, height=620, width="stretch")
         else:
-            st.warning("Install streamlit-folium for better map rendering: pip install streamlit-folium")
+            st.warning(
+                "Install streamlit-folium for better map rendering: pip install streamlit-folium"
+            )
             st.components.v1.html(fmap._repr_html_(), height=620)
 
 
@@ -318,7 +312,7 @@ with tab_static:
 
         if path is not None:
             st.markdown(f"### {title}")
-            st.image(str(path), use_container_width=True)
+            st.image(str(path), width="stretch")
             shown += 1
 
     if shown == 0:
@@ -334,7 +328,7 @@ with tab_exposure:
     if exposure is None:
         st.info("exposure_summary.csv is not available yet.")
     else:
-        st.dataframe(exposure, use_container_width=True)
+        st.dataframe(exposure, width="stretch")
         st.download_button(
             "Download exposure summary",
             exposure.to_csv(index=False).encode("utf-8"),
@@ -349,7 +343,7 @@ with tab_validation:
     if validation is None:
         st.info("validation_metrics.csv is not available yet.")
     else:
-        st.dataframe(validation, use_container_width=True)
+        st.dataframe(validation, width="stretch")
 
         if not validation.empty:
             row = validation.iloc[0]
@@ -373,7 +367,7 @@ with tab_priority:
     if priority is None:
         st.info("priority_ranking.csv is not available yet.")
     else:
-        st.dataframe(priority, use_container_width=True)
+        st.dataframe(priority, width="stretch")
         st.download_button(
             "Download priority ranking",
             priority.to_csv(index=False).encode("utf-8"),
