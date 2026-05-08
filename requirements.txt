@@ -1,18 +1,8 @@
-geopandas
-rasterio
-rioxarray
-xarray
-numpy
-pandas
-shapely
-pyproj
-whitebox
-rasterstats
-osmnx
-scikit-learn
-matplotlib
-folium
-streamlit
-pyyaml
-jupyter
-pytest
+# Streamlit Cloud optimised — lightweight dependencies only
+# geopandas is loaded conditionally so the app works even without it
+streamlit>=1.28
+pandas>=2.0
+matplotlib>=3.7
+numpy>=1.24
+folium>=0.14
+streamlit-folium>=0.15
