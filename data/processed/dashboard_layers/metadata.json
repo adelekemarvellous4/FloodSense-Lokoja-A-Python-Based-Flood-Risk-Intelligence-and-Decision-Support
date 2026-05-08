@@ -1,0 +1,30 @@
+{
+  "project": {
+    "name": "floodsense-lokoja",
+    "study_area": "Lokoja",
+    "state": "Kogi",
+    "country": "Nigeria",
+    "crs": "EPSG:32632",
+    "geographic_crs": "EPSG:4326"
+  },
+  "layers": [
+    "exposed_buildings.geojson",
+    "exposed_roads.geojson",
+    "flood_susceptibility_zones.geojson",
+    "lokoja_boundary.geojson",
+    "observed_flood_extent.geojson"
+  ],
+  "tables": [
+    "exposure_summary.csv",
+    "priority_ranking.csv",
+    "validation_metrics.csv"
+  ],
+  "statistics": {
+    "exposed_population": 152438,
+    "exposed_buildings": 80099,
+    "affected_road_length_km": 1741.07,
+    "sar_f1_score": 0.2784,
+    "sar_recall": 0.4862,
+    "flood_event": "2022 Niger-Benue flood"
+  }
+}

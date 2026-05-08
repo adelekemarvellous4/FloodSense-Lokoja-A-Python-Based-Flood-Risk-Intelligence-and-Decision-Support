@@ -1,0 +1,2 @@
+true_positive,true_negative,false_positive,false_negative,precision,recall,f1_score,overall_accuracy,kappa,flood_event,sar_polarization,model_classes
+298660,1980815,1232310,315643,0.1951,0.4862,0.2784,0.5956,0.064,2022 Niger-Benue flood,VH,4 (High) + 5 (Very High)

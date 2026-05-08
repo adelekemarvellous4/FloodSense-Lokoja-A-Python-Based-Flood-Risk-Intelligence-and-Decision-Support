@@ -23,6 +23,24 @@ outputs/**
 !data/**/.gitkeep
 !outputs/**/.gitkeep
 
+# Keep lightweight Streamlit deployment assets
+!data/processed/
+!data/processed/dashboard_layers/
+data/processed/dashboard_layers/*
+!data/processed/dashboard_layers/.gitkeep
+!data/processed/dashboard_layers/*_simplified.geojson
+!data/processed/dashboard_layers/metadata.json
+!data/processed/dashboard_layers/summary_stats.json
+
+!outputs/
+!outputs/dashboard/
+outputs/dashboard/*
+!outputs/dashboard/*.csv
+
+!outputs/maps/
+outputs/maps/*
+!outputs/maps/*.png
+
 # OS/editor
 .DS_Store
 Thumbs.db
