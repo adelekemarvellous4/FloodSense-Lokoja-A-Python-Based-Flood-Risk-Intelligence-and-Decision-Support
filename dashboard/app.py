@@ -16,6 +16,10 @@ except Exception:
 ROOT = Path(__file__).resolve().parents[1]
 LAYER_DIR = ROOT / "data" / "processed" / "dashboard_layers"
 MAPS_DIR = ROOT / "outputs" / "maps"
+GITHUB_URL = (
+    "https://github.com/adelekemarvellous4/"
+    "floodsense-lokoja-a-python-based-flood-risk-intelligence-and-decision-support"
+)
 
 TABLE_DIRS = [
     ROOT / "outputs" / "dashboard",
@@ -105,7 +109,6 @@ def load_geojson(filename: str) -> dict | None:
             return None
 
         return data
-
     except Exception as exc:
         st.warning(f"Could not load {filename}: {exc}")
         return None
@@ -118,19 +121,31 @@ def load_table(filename: str) -> pd.DataFrame | None:
         if path.exists():
             try:
                 return pd.read_csv(path)
-            except Exception:
+            except Exception as exc:
+                st.warning(f"Could not read {filename}: {exc}")
                 return None
     return None
 
 
+def table_locations(filename: str) -> list[Path]:
+    return [folder / filename for folder in TABLE_DIRS]
+
+
+def show_missing_table_help(filename: str) -> None:
+    st.info(f"{filename} is not available yet.")
+    with st.expander("Paths checked"):
+        for path in table_locations(filename):
+            st.code(str(path))
+
+
 def safe_metric(df: pd.DataFrame | None, column: str, fmt: str = "{:,.0f}") -> str:
     if df is None or df.empty or column not in df.columns:
-        return "—"
+        return "-"
 
     value = pd.to_numeric(df[column], errors="coerce").sum()
 
     if pd.isna(value):
-        return "—"
+        return "-"
 
     return fmt.format(value)
 
@@ -163,19 +178,19 @@ def build_map(selected_layers: list[str]) -> folium.Map:
     )
 
     folium.TileLayer("OpenStreetMap", name="OpenStreetMap").add_to(fmap)
-
     folium.TileLayer(
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        tiles=(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/"
+            "World_Imagery/MapServer/tile/{z}/{y}/{x}"
+        ),
         attr="Esri",
         name="Satellite",
     ).add_to(fmap)
 
     for filename in selected_layers:
-        style = INTERACTIVE_LAYERS[filename]
-        add_geojson_layer(fmap, filename, style)
+        add_geojson_layer(fmap, filename, INTERACTIVE_LAYERS[filename])
 
     folium.LayerControl(collapsed=False).add_to(fmap)
-
     return fmap
 
 
@@ -189,18 +204,30 @@ def find_static_map(candidates: list[str]) -> Path | None:
 
 st.set_page_config(
     page_title="FloodSense Lokoja",
-    page_icon="🌊",
+    page_icon="Flood",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
 with st.sidebar:
-    st.title("🌊 FloodSense")
+    st.title("FloodSense")
     st.caption("Flood Risk Intelligence and Decision Support System")
 
     st.markdown("**Study area:** Lokoja LGA, Kogi State")
     st.markdown("**Validation event:** October 2022 flood")
+
+    st.divider()
+    st.subheader("About")
+    st.markdown(
+        "Python-based flood risk intelligence and decision support system for "
+        "Lokoja, Kogi State, Nigeria."
+    )
+    st.markdown(
+        "Combines DEM hydrology, flood susceptibility mapping, Sentinel-1 SAR "
+        "validation, exposure analysis, and intervention priority ranking."
+    )
+    st.markdown(f"[GitHub Repository]({GITHUB_URL})")
 
     st.divider()
     st.subheader("Interactive map layers")
@@ -235,30 +262,19 @@ priority = load_table("priority_ranking.csv")
 
 st.title("FloodSense Lokoja")
 st.markdown(
-    "Flood Risk Intelligence and Decision Support System — Lokoja LGA, Kogi State, Nigeria"
+    "Flood Risk Intelligence and Decision Support System - "
+    "Lokoja LGA, Kogi State, Nigeria"
 )
 
 c1, c2, c3, c4 = st.columns(4)
-
-c1.metric(
-    "Exposed population",
-    safe_metric(exposure, "exposed_population"),
-)
-
-c2.metric(
-    "Exposed buildings",
-    safe_metric(exposure, "exposed_buildings"),
-)
-
-c3.metric(
-    "Affected roads",
-    safe_metric(exposure, "affected_road_length_km", "{:,.1f} km"),
-)
+c1.metric("Exposed population", safe_metric(exposure, "exposed_population"))
+c2.metric("Exposed buildings", safe_metric(exposure, "exposed_buildings"))
+c3.metric("Affected roads", safe_metric(exposure, "affected_road_length_km", "{:,.1f} km"))
 
 if priority is not None and not priority.empty and "priority_class" in priority.columns:
     priority_class = str(priority["priority_class"].iloc[0])
 else:
-    priority_class = "—"
+    priority_class = "-"
 
 c4.metric("Priority class", priority_class)
 
@@ -292,9 +308,7 @@ with tab_map:
         if HAS_ST_FOLIUM:
             st_folium(fmap, height=620, width="stretch")
         else:
-            st.warning(
-                "Install streamlit-folium for better map rendering: pip install streamlit-folium"
-            )
+            st.warning("Install streamlit-folium for better map rendering.")
             st.components.v1.html(fmap._repr_html_(), height=620)
 
 
@@ -309,7 +323,6 @@ with tab_static:
 
     for title, candidates in STATIC_MAPS.items():
         path = find_static_map(candidates)
-
         if path is not None:
             st.markdown(f"### {title}")
             st.image(str(path), width="stretch")
@@ -326,7 +339,7 @@ with tab_exposure:
     st.subheader("Exposure summary")
 
     if exposure is None:
-        st.info("exposure_summary.csv is not available yet.")
+        show_missing_table_help("exposure_summary.csv")
     else:
         st.dataframe(exposure, width="stretch")
         st.download_button(
@@ -341,7 +354,7 @@ with tab_validation:
     st.subheader("Sentinel-1 SAR validation")
 
     if validation is None:
-        st.info("validation_metrics.csv is not available yet.")
+        show_missing_table_help("validation_metrics.csv")
     else:
         st.dataframe(validation, width="stretch")
 
@@ -365,7 +378,7 @@ with tab_priority:
     st.subheader("Flood Intervention Priority Index")
 
     if priority is None:
-        st.info("priority_ranking.csv is not available yet.")
+        show_missing_table_help("priority_ranking.csv")
     else:
         st.dataframe(priority, width="stretch")
         st.download_button(
@@ -377,6 +390,4 @@ with tab_priority:
 
 
 st.divider()
-st.caption(
-    "FloodSense Lokoja · Python-based Flood Risk Intelligence and Decision Support System"
-)
+st.caption("FloodSense Lokoja - Python-based Flood Risk Intelligence and Decision Support System")
